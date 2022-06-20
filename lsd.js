@@ -11,6 +11,7 @@ const provider = ethers.getDefaultProvider('mainnet', {
   'etherscan': process.env.ETHERSCAN_KEY,
   'pocket': process.env.POCKET_KEY,
 });
+const ramanaAddress = '0xb0de8cb8dcc8c5382c4b7f3e978b491140b2bc55';
 const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const rETHContract = new ethers.Contract(rETHAddress,
@@ -25,11 +26,15 @@ const rateToString = r => {
   return ethers.utils.formatUnits(r.sub(rem))
 }
 const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
-const percentage = (a, b) => {
-  const dir = a.lte(b) ? 'premium' : 'discount'
-  const lohi = a.lte(b) ? [a, b] : [b, a]
-  const x = lohi[0]; const y = lohi[1]
-  return [ethers.utils.formatUnits(((y.sub(x)).mul('100')).mul('1000').div(x), 3), dir]
+const percentage = (a, b, addr) => {
+  const dir = a.lte(b) ? ['premium', `${addr}/ETH`, [a, b]] :
+                         ['discount', `ETH/${addr}`, [b, a]]
+  const x = dir[2][0]; const y = dir[2][1]
+  return {
+    'p': ethers.utils.formatUnits(((y.sub(x)).mul('100')).mul('1000').div(x), 3),
+    'd': dir[0],
+    'u': dir[1],
+  }
 }
 
 app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
@@ -40,16 +45,16 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
         wstETHContract.stEthPerToken(),
         secondaryRate(rETHAddress),
         secondaryRate(wstETHAddress)]).then(prices => {
-          const rETHPercent = percentage(prices[0], prices[2])
-          const wstETHPercent = percentage(prices[1], prices[3])
+          const rETH = percentage(prices[0], prices[2], rETHAddress)
+          const wstETH = percentage(prices[1], prices[3], wstETHAddress)
           const lines = [
             '_Primary_',
             `[**1 rETH = ${rateToString(prices[0])} ETH**](https://stake.rocketpool.net)`,
             `[**1 wstETH = ${rateToString(prices[1])} ETH**](https://stake.lido.fi/wrap)`,
-            '_Secondary_',
-            `[**1 rETH = ${rateToString(prices[2])} ETH**](https://app.1inch.io/#/1/swap/${rETHAddress}/ETH) (${rETHPercent[0]}% ${rETHPercent[1]})`,
-            `[**1 wstETH = ${rateToString(prices[3])} ETH**](https://app.1inch.io/#/1/swap/${wstETHAddress}/ETH) (${wstETHPercent[0]}% ${wstETHPercent[1]})`,
-            '_bot by ramana.eth_',
+            `_Secondary ([1Inch](https://app.1inch.io/#/r/${ramanaAddress}))_`,
+            `[**1 rETH = ${rateToString(prices[2])} ETH**](https://app.1inch.io/#/1/swap/${rETH.u}) (${rETH.p}% ${rETH.d})`,
+            `[**1 wstETH = ${rateToString(prices[3])} ETH**](https://app.1inch.io/#/1/swap/${wstETH.u}) (${wstETH.p}% ${wstETH.d})`,
+            `_bot by [ramana.eth](ethereum://${ramanaAddress})_`,
           ]
           res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
