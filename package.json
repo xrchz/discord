@@ -1,0 +1,12 @@
+{
+  "name": "lsd-price",
+  "version": "0.0.1",
+  "license": "GPL-3.0-or-later",
+  "description": "LSD Price Bot",
+  "dependencies": {
+    "express": ">=4.17.1",
+    "dotenv": ">=16.0.1",
+    "ethers": ">=5.6.9",
+    "discord-interactions": ">=3.2.0"
+  }
+}

@@ -1,0 +1,72 @@
+require('dotenv').config()
+
+const fs = require('fs')
+const ethers = require('ethers')
+const express = require('express')
+const { InteractionType, InteractionResponseType, verifyKeyMiddleware } = require('discord-interactions')
+
+const app = express();
+
+const provider = ethers.getDefaultProvider('mainnet', {
+  'etherscan': process.env.ETHERSCAN_KEY,
+  'pocket': process.env.POCKET_KEY,
+});
+const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
+const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
+const rETHContract = new ethers.Contract(rETHAddress,
+  ['function getExchangeRate() view returns (uint256)'], provider);
+const wstETHContract = new ethers.Contract(wstETHAddress,
+  ['function stEthPerToken() view returns (uint256)'], provider);
+const spotPriceContract = new ethers.Contract('0x07D91f5fb9Bf7798734C3f606dB065549F6893bb',
+  ['function getRateToEth(address, bool) view returns (uint256)'], provider);
+
+const rateToString = r => {
+  const rem = r.mod(1e12)
+  return ethers.utils.formatUnits(r.sub(rem))
+}
+const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
+const percentage = (a, b) => {
+  const dir = a.lte(b) ? 'premium' : 'discount'
+  const lohi = a.lte(b) ? [a, b] : [b, a]
+  const x = lohi[0]; const y = lohi[1]
+  return [ethers.utils.formatUnits(((y.sub(x)).mul('100')).mul('1000').div(x), 3), dir]
+}
+
+app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
+  const interaction = req.body;
+  if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+    Promise.all(
+      [rETHContract.getExchangeRate(),
+        wstETHContract.stEthPerToken(),
+        secondaryRate(rETHAddress),
+        secondaryRate(wstETHAddress)]).then(prices => {
+          const rETHPercent = percentage(prices[0], prices[2])
+          const wstETHPercent = percentage(prices[1], prices[3])
+          const lines = [
+            '_Primary_',
+            `[**1 rETH = ${rateToString(prices[0])} ETH**](https://stake.rocketpool.net)`,
+            `[**1 wstETH = ${rateToString(prices[1])} ETH**](https://stake.lido.fi/wrap)`,
+            '_Secondary_',
+            `[**1 rETH = ${rateToString(prices[2])} ETH**](https://app.1inch.io/#/1/swap/${rETHAddress}/ETH) (${rETHPercent[0]}% ${rETHPercent[1]})`,
+            `[**1 wstETH = ${rateToString(prices[3])} ETH**](https://app.1inch.io/#/1/swap/${wstETHAddress}/ETH) (${wstETHPercent[0]}% ${wstETHPercent[1]})`,
+            '_bot by ramana.eth_',
+          ]
+          res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: lines.join('\n'),
+              flags: 1<<2,
+            },
+          });
+        })
+  }
+});
+
+const port = '/run/games/lsd.socket'
+
+app.listen(port, () => {
+  fs.chmodSync(port, 0o777);
+  console.log(`LSD app listening on ${port}`);
+});
+
+process.on('SIGINT', () => { fs.unlinkSync(port); process.exit() })
