@@ -12,6 +12,7 @@ const provider = ethers.getDefaultProvider('mainnet', {
   'pocket': process.env.POCKET_KEY,
 });
 const ramanaAddress = '0xb0de8cb8dcc8c5382c4b7f3e978b491140b2bc55';
+const truncatedAddress = `${ramanaAddress.substring(0,6)}…${ramanaAddress.substring(ramanaAddress.length - 4)}`
 const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const rETHContract = new ethers.Contract(rETHAddress,
@@ -50,12 +51,12 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
           const wstETH = percentage(prices[1], prices[3], wstETHAddress)
           const lines = [
             '_Primary_',
-            `[**1 rETH = ${rateToString(prices[0])} ETH**](https://stake.rocketpool.net)`,
-            `[**1 wstETH = ${rateToString(prices[1])} ETH**](https://stake.lido.fi/wrap)`,
+            `**[1 rETH = ${rateToString(prices[0])} ETH](https://stake.rocketpool.net)**`,
+            `**[1 wstETH = ${rateToString(prices[1])} ETH](https://stake.lido.fi/wrap)**`,
             `_Secondary ([1Inch](https://app.1inch.io/#/r/${ramanaAddress}))_`,
-            `[**1 rETH = ${rateToString(prices[2])} ETH**](https://app.1inch.io/#/1/swap/${rETH.u}) (${rETH.p}% ${rETH.d})`,
-            `[**1 wstETH = ${rateToString(prices[3])} ETH**](https://app.1inch.io/#/1/swap/${wstETH.u}) (${wstETH.p}% ${wstETH.d})`,
-            `_bot by [ramana.eth](ethereum://${ramanaAddress})_`,
+            `**[1 rETH = ${rateToString(prices[2])} ETH](https://app.1inch.io/#/1/swap/${rETH.u})** (${rETH.p}% ${rETH.d})`,
+            `**[1 wstETH = ${rateToString(prices[3])} ETH](https://app.1inch.io/#/1/swap/${wstETH.u})** (${wstETH.p}% ${wstETH.d})`,
+            `_bot by ramana.eth (${truncatedAddress})_`,
           ]
           res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
