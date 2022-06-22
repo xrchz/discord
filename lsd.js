@@ -26,14 +26,15 @@ const rateToString = r => {
   return ethers.utils.formatUnits(r.sub(rem))
 }
 const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
-const percentage = (a, b, addr) => {
-  const dir = a.lte(b) ? ['premium', `${addr}/ETH`, [a, b]] :
-                         ['discount', `ETH/${addr}`, [b, a]]
-  const x = dir[2][0]; const y = dir[2][1]
+const percentage = (p, s, addr) => {
+  const d = p.lte(s) ? ['premium', `${addr}/ETH`] :
+                       ['discount', `ETH/${addr}`]
   return {
-    'p': ethers.utils.formatUnits(((y.sub(x)).mul('100')).mul('1000').div(x), 3),
-    'd': dir[0],
-    'u': dir[1],
+    'p': ethers.utils.formatUnits(
+      ((p.sub(s).abs()).mul('100')).mul('1000').div(p),
+      3),
+    'd': d[0],
+    'u': d[1],
   }
 }
 
