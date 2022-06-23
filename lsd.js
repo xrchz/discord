@@ -28,8 +28,8 @@ const rateToString = r => {
 }
 const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
 const percentage = (p, s, addr) => {
-  const d = p.lte(s) ? ['premium', `${addr}/ETH`] :
-                       ['discount', `ETH/${addr}`]
+  const d = p.lte(s) ? ['premium', `${addr}/WETH`] :
+                       ['discount', `WETH/${addr}`]
   return {
     'p': ethers.utils.formatUnits(
       ((p.sub(s).abs()).mul('100')).mul('1000').div(p),
@@ -54,8 +54,8 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
             `**[1 rETH = ${rateToString(prices[0])} ETH](https://stake.rocketpool.net)**`,
             `**[1 wstETH = ${rateToString(prices[1])} ETH](https://stake.lido.fi/wrap)**`,
             `_Secondary ([1Inch](https://app.1inch.io/#/r/${ramanaAddress}))_`,
-            `**[1 rETH = ${rateToString(prices[2])} ETH](https://app.1inch.io/#/1/swap/${rETH.u})** (${rETH.p}% ${rETH.d})`,
-            `**[1 wstETH = ${rateToString(prices[3])} ETH](https://app.1inch.io/#/1/swap/${wstETH.u})** (${wstETH.p}% ${wstETH.d})`,
+            `**[1 rETH = ${rateToString(prices[2])} ETH](https://app.1inch.io/#/1/classic/limit-order/${rETH.u})** (${rETH.p}% ${rETH.d})`,
+            `**[1 wstETH = ${rateToString(prices[3])} ETH](https://app.1inch.io/#/1/classic/limit-order/${wstETH.u})** (${wstETH.p}% ${wstETH.d})`,
             `_bot by ramana.eth (${truncatedAddress})_`,
           ]
           res.send({
