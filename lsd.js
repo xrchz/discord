@@ -56,7 +56,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
             `_Secondary ([1Inch](https://app.1inch.io/#/r/${ramanaAddress}))_`,
             `**[1 rETH = ${rateToString(prices[2])} ETH](https://app.1inch.io/#/1/classic/limit-order/${rETH.u})** (${rETH.p}% ${rETH.d})`,
             `**[1 wstETH = ${rateToString(prices[3])} ETH](https://app.1inch.io/#/1/classic/limit-order/${wstETH.u})** (${wstETH.p}% ${wstETH.d})`,
-            `_bot by ramana.eth (${truncatedAddress})_`,
+            `_[bot](https://github.com/xrchz/discord) by ramana.eth (${truncatedAddress})_`,
           ]
           res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
