@@ -25,6 +25,13 @@ const cbETHContract = new ethers.Contract(cbETHAddress,
 const spotPriceContract = new ethers.Contract('0x07D91f5fb9Bf7798734C3f606dB065549F6893bb',
   ['function getRateToEth(address, bool) view returns (uint256)'], provider);
 
+const rocketPoolId = '405159462932971535'
+const broadcastChannelIds = [
+  '704196071881965589', // general
+  '405163713063288832', // trading
+  '405503016234385409'  // random
+]
+
 const rateToString = r => {
   const rem = r.mod(1e12)
   return ethers.utils.formatUnits(r.sub(rem))
@@ -66,11 +73,13 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
             `**[1 cbETH = ${rateToString(prices[5])} ETH](https://app.1inch.io/#/1/classic/limit-order/${cbETH.u})** (${cbETH.p}% ${cbETH.d})`,
             `_[bot](https://github.com/xrchz/discord) by ramana.eth (${truncatedAddress})_`,
           ]
+          const suppress_embeds = false
+          const ephemeral = interaction.guild_id === rocketPoolId && !broadcastChannelIds.includes(interaction.channel_id)
           res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
               content: lines.join('\n'),
-              flags: 1<<2,
+              flags: suppress_embeds<<2 | ephemeral<<6,
             },
           });
         })
