@@ -54,11 +54,11 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
     Promise.all(
       [rETHContract.getExchangeRate(),
-        wstETHContract.stEthPerToken(),
-        cbETHContract.exchangeRate(),
-        secondaryRate(rETHAddress),
-        secondaryRate(wstETHAddress),
-        secondaryRate(cbETHAddress)]).then(prices => {
+       wstETHContract.stEthPerToken(),
+       cbETHContract.exchangeRate(),
+       secondaryRate(rETHAddress),
+       secondaryRate(wstETHAddress),
+       secondaryRate(cbETHAddress)]).then(prices => {
           const rETH = percentage(prices[0], prices[3], rETHAddress)
           const wstETH = percentage(prices[1], prices[4], wstETHAddress)
           const cbETH = percentage(prices[2], prices[5], cbETHAddress)
