@@ -73,7 +73,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
             `**[1 cbETH = ${rateToString(prices[5])} ETH](https://app.1inch.io/#/1/classic/limit-order/${cbETH.u})** (${cbETH.p}% ${cbETH.d})`,
             `_[bot](https://github.com/xrchz/discord) by ramana.eth (${truncatedAddress})_`,
           ]
-          const suppress_embeds = false
+          const suppress_embeds = true
           const ephemeral = interaction.guild_id === rocketPoolId && !broadcastChannelIds.includes(interaction.channel_id)
           res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
