@@ -3,6 +3,7 @@ require('dotenv').config()
 const fs = require('fs')
 const ethers = require('ethers')
 const express = require('express')
+const https = require('https')
 const { InteractionType, InteractionResponseType, verifyKeyMiddleware } = require('discord-interactions')
 
 const app = express();
@@ -11,8 +12,11 @@ const provider = ethers.getDefaultProvider('mainnet', {
   'etherscan': process.env.ETHERSCAN_KEY,
   'pocket': process.env.POCKET_KEY,
 });
-const ramanaAddress = '0xb0de8cb8dcc8c5382c4b7f3e978b491140b2bc55';
+const ramanaAddressOneInch = '0xB0De8cB8Dcc8c5382c4b7F3E978b491140B2bC55';
+const ramanaAddress = '0x65FE89a480bdB998F4116DAf2A9360632554092c';
 const truncatedAddress = `${ramanaAddress.substring(0,6)}…${ramanaAddress.substring(ramanaAddress.length - 4)}`
+const oneEtherStr = ethers.utils.parseUnits('1', 'ether').toString();
+const ethAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const cbETHAddress = '0xbe9895146f7af43049ca1c1ae358b0541ea49704';
@@ -36,7 +40,35 @@ const rateToString = r => {
   const rem = r.mod(1e12)
   return ethers.utils.formatUnits(r.sub(rem))
 }
-const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
+
+// const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
+
+async function secondaryRate(addr) {
+  const quoteParams = {
+    fromTokenAddress: addr,
+    toTokenAddress: ethAddress,
+    amount: oneEtherStr
+  }
+  const queryString = new URLSearchParams(quoteParams).toString()
+  const url = `https://api.1inch.io/v5.0/1/quote?${queryString}`
+  const apiCall = new Promise((resolve, reject) => {
+    const req = https.get(url,
+      (res) => {
+        if (res.statusCode !== 200) {
+          console.log(`Got ${res.statusCode} from 1inch: ${res.statusMessage}`)
+          reject(res)
+        }
+        res.setEncoding('utf8')
+        let data = ''
+        res.on('data', (chunk) => data += chunk)
+        res.on('end', () => resolve(JSON.parse(data)))
+      })
+    req.on('error', reject)
+  })
+  const quote = await apiCall
+  return ethers.BigNumber.from(quote.toTokenAmount)
+}
+
 const percentage = (p, s, addr) => {
   const d = p.lte(s) ? ['premium', `${addr}/WETH`] :
                        ['discount', `WETH/${addr}`]
@@ -67,7 +99,8 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
             `**[1 rETH = ${rateToString(prices[0])} ETH](https://stake.rocketpool.net)**`,
             `**[1 wstETH = ${rateToString(prices[1])} ETH](https://stake.lido.fi/wrap)**`,
             `**[1 cbETH = ${rateToString(prices[2])} ETH](https://www.coinbase.com/cbeth/whitepaper)**`,
-            `_Secondary ([1Inch](https://app.1inch.io/#/r/${ramanaAddress}))_`,
+            // 'Warning: these are liquidity-weighted average prices, not best prices. Will switch to best at some point.',
+            `_Secondary ([1Inch](https://app.1inch.io/#/r/${ramanaAddressOneInch}))_`,
             `**[1 rETH = ${rateToString(prices[3])} ETH](https://app.1inch.io/#/1/classic/limit-order/${rETH.u})** (${rETH.p}% ${rETH.d})`,
             `**[1 wstETH = ${rateToString(prices[4])} ETH](https://app.1inch.io/#/1/classic/limit-order/${wstETH.u})** (${wstETH.p}% ${wstETH.d})`,
             `**[1 cbETH = ${rateToString(prices[5])} ETH](https://app.1inch.io/#/1/classic/limit-order/${cbETH.u})** (${cbETH.p}% ${cbETH.d})`,
