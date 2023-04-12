@@ -1,21 +1,17 @@
-require('dotenv').config()
-
-const fs = require('fs')
-const ethers = require('ethers')
-const express = require('express')
-const https = require('https')
-const { InteractionType, InteractionResponseType, verifyKeyMiddleware } = require('discord-interactions')
+import 'dotenv/config'
+import * as fs from 'node:fs'
+import { ethers } from 'ethers'
+import express from 'express'
+import * as https from 'https'
+import { InteractionType, InteractionResponseType, verifyKeyMiddleware } from 'discord-interactions'
 
 const app = express();
 
-const provider = ethers.getDefaultProvider('mainnet', {
-  'etherscan': process.env.ETHERSCAN_KEY,
-  'pocket': process.env.POCKET_KEY,
-});
+const provider = new ethers.EtherscanProvider('mainnet', process.env.ETHERSCAN_KEY);
 const ramanaAddressOneInch = '0xB0De8cB8Dcc8c5382c4b7F3E978b491140B2bC55';
 const ramanaAddress = '0x65FE89a480bdB998F4116DAf2A9360632554092c';
 const truncatedAddress = `${ramanaAddress.substring(0,6)}…${ramanaAddress.substring(ramanaAddress.length - 4)}`
-const oneEtherStr = ethers.utils.parseUnits('1', 'ether').toString();
+const oneEtherStr = ethers.parseUnits('1', 'ether').toString();
 const ethAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
@@ -37,11 +33,9 @@ const broadcastChannelIds = [
 ]
 
 const rateToString = r => {
-  const rem = r.mod(1e12)
-  return ethers.utils.formatUnits(r.sub(rem))
+  const rem = r % BigInt(1e12)
+  return ethers.formatUnits(r - rem)
 }
-
-// const secondaryRate = addr => spotPriceContract.getRateToEth(addr, true);
 
 async function secondaryRate(addr) {
   const quoteParams = {
@@ -66,15 +60,17 @@ async function secondaryRate(addr) {
     req.on('error', reject)
   })
   const quote = await apiCall
-  return ethers.BigNumber.from(quote.toTokenAmount)
+  return BigInt(quote.toTokenAmount)
 }
 
+const abs = (n) => n < 0n ? -n : n
+
 const percentage = (p, s, addr) => {
-  const d = p.lte(s) ? ['premium', `${addr}/WETH`] :
-                       ['discount', `WETH/${addr}`]
+  const d = p <= s ? ['premium', `${addr}/WETH`] :
+                     ['discount', `WETH/${addr}`]
   return {
-    'p': ethers.utils.formatUnits(
-      ((p.sub(s).abs()).mul('100')).mul('1000').div(p),
+    'p': ethers.formatUnits(
+      (abs(p - s) * 100n) * 1000n / p,
       3),
     'd': d[0],
     'u': d[1],
@@ -90,7 +86,8 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
        cbETHContract.exchangeRate(),
        secondaryRate(rETHAddress),
        secondaryRate(wstETHAddress),
-       secondaryRate(cbETHAddress)]).then(prices => {
+       secondaryRate(cbETHAddress)
+      ]).then(prices => {
           const rETH = percentage(prices[0], prices[3], rETHAddress)
           const wstETH = percentage(prices[1], prices[4], wstETHAddress)
           const cbETH = percentage(prices[2], prices[5], cbETHAddress)
