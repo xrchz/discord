@@ -18,11 +18,14 @@ const oneEtherStr = ethers.parseUnits('1', 'ether').toString();
 const ethAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
+const swETHAddress = '0xf951E335afb289353dc249e82926178EaC7DEd78';
 const cbETHAddress = '0xbe9895146f7af43049ca1c1ae358b0541ea49704';
 const rETHContract = new ethers.Contract(rETHAddress,
   ['function getExchangeRate() view returns (uint256)'], provider);
 const wstETHContract = new ethers.Contract(wstETHAddress,
   ['function stEthPerToken() view returns (uint256)'], provider);
+const swETHContract = new ethers.Contract(swETHAddress,
+  ['function swETHToETHRate() view returns (uint256)'], provider);
 const cbETHContract = new ethers.Contract(cbETHAddress,
   ['function exchangeRate() view returns (uint256)'], provider);
 const spotPriceContract = new ethers.Contract('0x07D91f5fb9Bf7798734C3f606dB065549F6893bb',
@@ -126,24 +129,29 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
     Promise.all(
       [rETHContract.getExchangeRate(),
         wstETHContract.stEthPerToken(),
+        swETHContract.swETHToETHRate(),
         cbETHContract.exchangeRate(),
         secondaryRate(rETHAddress),
         secondaryRate(wstETHAddress),
+        secondaryRate(swETHAddress),
         secondaryRate(cbETHAddress)
       ]).then(prices => {
-        const rETH = percentage(prices[0], prices[3], rETHAddress)
-        const wstETH = percentage(prices[1], prices[4], wstETHAddress)
-        const cbETH = percentage(prices[2], prices[5], cbETHAddress)
+        const rETH = percentage(prices[0], prices[4], rETHAddress)
+        const wstETH = percentage(prices[1], prices[5], wstETHAddress)
+        const swETH = percentage(prices[2], prices[6], swETHAddress)
+        const cbETH = percentage(prices[3], prices[7], cbETHAddress)
         const lines = [
           '_Primary_',
           `**[1 rETH = ${rateToString(prices[0])} ETH](<https://stake.rocketpool.net>)**`,
           `**[1 wstETH = ${rateToString(prices[1])} ETH](<https://stake.lido.fi/wrap>)**`,
-          `**[1 cbETH = ${rateToString(prices[2])} ETH](<https://www.coinbase.com/cbeth/whitepaper>)**`,
+          `**[1 swETH = ${rateToString(prices[2])} ETH](<https://app.swellnetwork.io>)**`,
+          `**[1 cbETH = ${rateToString(prices[3])} ETH](<https://www.coinbase.com/cbeth/whitepaper>)**`,
           // 'Warning: these are liquidity-weighted average prices, not best prices. Will switch to best at some point.',
           `_Secondary ([1Inch](<https://app.1inch.io/#/r/${ramanaAddressOneInch}>))_`,
-          `**[1 rETH = ${rateToString(prices[3])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
-          `**[1 wstETH = ${rateToString(prices[4])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
-          `**[1 cbETH = ${rateToString(prices[5])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
+          `**[1 rETH = ${rateToString(prices[4])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
+          `**[1 wstETH = ${rateToString(prices[5])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
+          `**[1 swETH = ${rateToString(prices[6])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
+          `**[1 cbETH = ${rateToString(prices[7])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
           `_[bot](<https://github.com/xrchz/discord>) by ramana.eth (${truncatedAddress})_`,
         ]
         sendFollowup(lines.join('\n'))
