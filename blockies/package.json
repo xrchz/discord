@@ -1,0 +1,12 @@
+{
+  "name": "blockies",
+  "version": "0.0.1",
+  "license": "GPL-3.0-or-later",
+  "description": "Blockies Bot",
+  "type": "module",
+  "dependencies": {
+    "express": "4",
+    "dotenv": "16",
+    "ethers": "6"
+  }
+}
