@@ -5,8 +5,9 @@
   "description": "Blockies Bot",
   "type": "module",
   "dependencies": {
-    "express": "4",
+    "canvas": "2",
     "dotenv": "16",
-    "ethers": "6"
+    "ethers": "6",
+    "express": "4"
   }
 }

@@ -1,3 +1,4 @@
+import { createCanvas } from 'canvas'
 // The random number is a js implementation of the Xorshift PRNG
 const randseed = new Array(4); // Xorshift: [x, y, z, w] 32 bit values
 
@@ -73,11 +74,8 @@ function buildOpts(opts) {
 }
 
 function renderIcon(opts, canvas) {
-	opts = buildOpts(opts || {});
 	const imageData = createImageData(opts.size);
 	const width = Math.sqrt(imageData.length);
-
-	canvas.width = canvas.height = opts.size * opts.scale;
 
 	const cc = canvas.getContext('2d');
 	cc.fillStyle = opts.bgcolor;
@@ -100,11 +98,10 @@ function renderIcon(opts, canvas) {
 	return canvas;
 }
 
-function createIcon(opts) {
-	const canvas = document.createElement('canvas');
+export function createIcon(opts) {
+	opts = buildOpts(opts || {});
+  const z = opts.size * opts.scale;
+	const canvas = createCanvas(z, z);
 	renderIcon(opts, canvas);
 	return canvas;
 }
-
-export const create = createIcon
-export const render = renderIcon
