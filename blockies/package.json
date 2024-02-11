@@ -7,7 +7,6 @@
   "dependencies": {
     "canvas": "2",
     "dotenv": "16",
-    "ethers": "6",
-    "express": "4"
+    "ethers": "6"
   }
 }
