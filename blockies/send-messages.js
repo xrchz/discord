@@ -8,7 +8,7 @@ for (const {user, name, addr, ens} of icons) {
     embeds:[{title:`Address for ${name}`,
              description:`<@${user}>: ${addr}${ens ? ` (${ens})` : ''}`,
              url:`https://etherscan.io/address/${addr}`,
-             image:{url:`attachment://${addr}.png`,height:32,width:32}}],
+             thumbnail:{url:`attachment://${addr}.png`,height:32,width:32}}],
     allowed_mentions:{parse:[]}
   })
   const payload_json = `payload_json=${json};type=application/json`
