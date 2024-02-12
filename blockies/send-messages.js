@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 const icons = JSON.parse(readFileSync('icons.json'))
 const outputs = []
-for (const {user, name, addr, ens} of icons.slice(2)) {
+for (const {user, name, addr, ens} of icons) {
   const json = JSON.stringify({
     embeds:[{title:`Address for ${name}`,
              description:`<@${user}>: ${addr}${ens ? ` (${ens})` : ''}`,
