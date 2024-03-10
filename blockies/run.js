@@ -45,15 +45,22 @@ if (newMessages.length) {
   writeFileSync('messages.json', JSON.stringify(messages))
 }
 
+const provider = new ethers.JsonRpcProvider(process.env.RPC || 'http://localhost:8545')
+
 const addressRegex = /0x[0-9a-fA-F]{40}/
-const addresses = messages.flatMap(({author: {id: user, username: name}, content}) => {
+const ensRegex = /\S+\.eth/ // overly permissive, but we will also resolve
+const addresses = []
+for (const {author: {id: user, username: name}, content} of messages) {
   const addr = addressRegex.exec(content)?.[0]
-  return addr ? [{user, name, addr}] : []
-})
+  if (addr) addresses.push({user, name, addr})
+  else {
+    const ens = ensRegex.exec(content)?.[0]
+    const addr = ens && await provider.resolveName(ens)
+    if (addr) addresses.push({user, name, addr})
+  }
+}
 
 console.log(`Got ${addresses.length} addresses: ${addresses.slice(0, 3).map(x => JSON.stringify(x))},...`)
-
-const provider = new ethers.JsonRpcProvider(process.env.RPC || 'http://localhost:8545')
 
 const doneIcon = new Map()
 
