@@ -59,7 +59,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
       })
     }).catch(error => {
       const message = ('statusMessage' in error) ? error.statusMessage : JSON.stringify(error)
-      console.warn(`${Date()}: error serving response: ${message}`)
+      console.warn(`${Date()}: error ${error}:${typeof error} serving response: ${message}`)
       const shortMessage = message.length > 32 ? `${message.slice(0, 32)}...` : message
       sendFollowup(shortMessage)
     })
