@@ -1,5 +1,4 @@
 import 'dotenv/config'
-import { ethers } from 'ethers'
 import express from 'express'
 import * as https from 'https'
 import { InteractionType, InteractionResponseType, verifyKeyMiddleware } from 'discord-interactions'

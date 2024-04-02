@@ -6,7 +6,6 @@
   "dependencies": {
     "express": "4",
     "dotenv": "16",
-    "ethers": "6",
     "discord-interactions": "3"
   }
 }
