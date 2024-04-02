@@ -9,15 +9,13 @@ const app = express();
 const discordApi = 'https://discord.com/api/v10'
 const userAgentVersion = 1
 
-const arrowServerId = 'TODOTODOTODO'
-const broadcastChannelIds = [
-  'TODOTODOTODO', // general
-]
+const arrowServerId = '853833144037277726'
+const nonBroadcastChannelIds = [ ]
 
 const followupOptions = {
   headers: {
     'Authorization': `Bearer ${process.env.TOKEN}`,
-    'User-Agent': `DiscordBot (https://xrchz.net/arrowbot, ${userAgentVersion})`,
+    'User-Agent': `DiscordBot (https://xrchz.net/arrowbot/, ${userAgentVersion})`,
     'Content-Type': 'application/json'
   },
   method: 'PATCH'
@@ -29,7 +27,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
   const interaction_token = interaction.token
   const followupUrl = new URL(`${discordApi}/webhooks/${application_id}/${interaction_token}/messages/@original`)
   const suppress_embeds = true
-  const ephemeral = interaction.guild_id === arrowServerId && !broadcastChannelIds.includes(interaction.channel_id)
+  const ephemeral = interaction.guild_id === arrowServerId && nonBroadcastChannelIds.includes(interaction.channel_id)
   const sendFollowup = msg => {
     const followupReq = https.request(followupUrl, followupOptions, followupRes => {
       if (followupRes.statusCode !== 200) {
@@ -45,7 +43,10 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
       flags: suppress_embeds<<2 | ephemeral<<6
     })
     fetch(`https://api.vesselfinder.com/vessels?userkey=${process.env.API_KEY}&imo=9320453`).then(res => {
-      if (res.status !== 200) throw res
+      if (res.status !== 200) {
+        console.warn(`${Date()}: Vesselfinder returned ${res.status}`)
+        throw res
+      }
       return res.json().then(data => {
         const {AIS} = data
         const etastamp = Math.round(Date.parse(`${AIS.ETA.replace(' ', 'T')}Z`) / 1000)
@@ -58,6 +59,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
       })
     }).catch(error => {
       const message = ('statusMessage' in error) ? error.statusMessage : JSON.stringify(error)
+      console.warn(`${Date()}: error serving response: ${message}`)
       const shortMessage = message.length > 32 ? `${message.slice(0, 32)}...` : message
       sendFollowup(shortMessage)
     })
