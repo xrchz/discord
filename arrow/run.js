@@ -48,7 +48,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
         throw res
       }
       return res.json().then(data => {
-        const {AIS} = data
+        const {AIS} = data[0]
         const etastamp = Math.round(Date.parse(`${AIS.ETA.replace(' ', 'T')}Z`) / 1000)
         const lines = [
           `Vessel ${AIS.IMO}: ${AIS.NAME} (${AIS.CALLSIGN})`,
