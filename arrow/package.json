@@ -1,0 +1,12 @@
+{
+  "name": "arrowbot",
+  "type": "module",
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "express": "4",
+    "dotenv": "16",
+    "ethers": "6",
+    "discord-interactions": "3"
+  }
+}
