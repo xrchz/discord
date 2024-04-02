@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import express from 'express'
 import * as https from 'https'
 import { InteractionType, InteractionResponseType, verifyKeyMiddleware } from 'discord-interactions'
+import * as fs from 'node:fs'
 
 const app = express();
 
@@ -44,16 +45,23 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
       content: 'Querying the oceans...',
       flags: suppress_embeds<<2 | ephemeral<<6
     })
-    // TODO: call ship API and sendFollowup when you have the response
-    Promise.all().then(data => {
-        // TODO format some lines from data...
+    fetch(`https://api.vesselfinder.com/vessels?userkey=${process.env.API_KEY}&imo=9320453`).then(res => {
+      if (res.status !== 200) throw res
+      return res.json().then(data => {
+        const {AIS} = data
+        const etastamp = Math.round(Date.parse(`${AIS.ETA.replace(' ', 'T')}Z`) / 1000)
+        const lines = [
+          `Vessel ${AIS.IMO}: ${AIS.NAME} (${AIS.CALLSIGN})`,
+          `Current Position: ${AIS.LATITUDE}, ${AIS.LONGITUDE}`,
+          `Estimated to reach ${AIS.DESTINATION}: ${AIS.ETA} (<t:${etastamp}:R>)`
+        ]
         sendFollowup(lines.join('\n'))
       })
-      .catch(error => {
-        const message = ('statusMessage' in error) ? error.statusMessage : JSON.stringify(error)
-        const shortMessage = message.length > 32 ? `${message.slice(0, 32)}...` : message
-        sendFollowup(shortMessage)
-      })
+    }).catch(error => {
+      const message = ('statusMessage' in error) ? error.statusMessage : JSON.stringify(error)
+      const shortMessage = message.length > 32 ? `${message.slice(0, 32)}...` : message
+      sendFollowup(shortMessage)
+    })
   }
 });
 
