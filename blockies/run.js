@@ -62,10 +62,14 @@ const paymentMessageResponse = await fetch(
   {headers: botHeaders}
 ).then(r => r.json())
 console.log(`paymentMessageResponse json: ${JSON.stringify(paymentMessageResponse)}`)
-const paymentMessages = paymentMessageResponse?.flatMap(r => r.content.startsWith('**Payments**') ? [r] : [])
+const paymentMessages = paymentMessageResponse?.flatMap(r =>
+  r.content?.startsWith('**Payments**') || r.author?.id == process.env.ADMIN_ID
+  ? [r] : []
+)
 console.log(`Got ${paymentMessages.length} payment messages`)
 const paymentMessage = paymentMessages[0]
-const paymentLines = paymentMessage?.content.split('\n').slice(1)
+const paymentLines = paymentMessage?.content.split('\n')
+if (paymentLines[0]?.startsWith('**Payments**')) paymentLines.shift()
 
 console.log(`Got payment message from ${paymentMessage?.author.username} with ${paymentLines?.length} lines`)
 
