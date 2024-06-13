@@ -61,7 +61,7 @@ async function secondaryRate(addr) {
     amount: oneEtherStr
   }
   const queryString = new URLSearchParams(quoteParams).toString()
-  const url = `https://api.1inch.dev/swap/v5.2/1/quote?${queryString}`
+  const url = `https://api.1inch.dev/swap/v6.0/1/quote?${queryString}`
   const apiCall = () => new Promise((resolve, reject) => {
     const req = https.get(url, {headers: {'Authorization': `Bearer ${process.env.API_KEY}`}},
       (res) => {
@@ -79,7 +79,7 @@ async function secondaryRate(addr) {
     req.on('error', reject)
   })
   const quote = await rateLimit(apiCall)
-  return BigInt(quote.toAmount)
+  return BigInt(quote.dstAmount)
 }
 
 const abs = (n) => n < 0n ? -n : n
