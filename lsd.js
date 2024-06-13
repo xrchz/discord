@@ -66,7 +66,7 @@ async function secondaryRate(addr) {
     const req = https.get(url, {headers: {'Authorization': `Bearer ${process.env.API_KEY}`}},
       (res) => {
         if (res.statusCode !== 200) {
-          console.log(`Got ${res.statusCode} from 1inch: ${res.statusMessage}`)
+          console.log(`${Date()}: Got ${res.statusCode} from 1inch: ${res.statusMessage}`)
           reject(res)
         }
         else {
