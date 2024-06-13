@@ -20,6 +20,7 @@ const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const swETHAddress = '0xf951E335afb289353dc249e82926178EaC7DEd78';
 const cbETHAddress = '0xbe9895146f7af43049ca1c1ae358b0541ea49704';
+// const RPLAddress = '0xD33526068D116cE69F19A9ee46F0bd304F21A51f';
 const rETHContract = new ethers.Contract(rETHAddress,
   ['function getExchangeRate() view returns (uint256)'], provider);
 const wstETHContract = new ethers.Contract(wstETHAddress,
@@ -134,20 +135,25 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
         secondaryRate(rETHAddress),
         secondaryRate(wstETHAddress),
         secondaryRate(swETHAddress),
-        secondaryRate(cbETHAddress)
+        secondaryRate(cbETHAddress),
+        //ethers.parseEther('0.69'),
+        //secondaryRate(RPLAddress),
       ]).then(prices => {
         const rETH = percentage(prices[0], prices[4], rETHAddress)
         const wstETH = percentage(prices[1], prices[5], wstETHAddress)
         const swETH = percentage(prices[2], prices[6], swETHAddress)
         const cbETH = percentage(prices[3], prices[7], cbETHAddress)
+        //const RPL = percentage(prices[8], prices[9], RPLAddress)
         const lines = [
           '_Primary_',
+          //`**[1 RPL = ${rateToString(prices[8])} ETH](<https://stakingpond.com>)**`,
           `**[1 rETH = ${rateToString(prices[0])} ETH](<https://stake.rocketpool.net>)**`,
           `**[1 wstETH = ${rateToString(prices[1])} ETH](<https://stake.lido.fi/wrap>)**`,
           `**[1 swETH = ${rateToString(prices[2])} ETH](<https://app.swellnetwork.io>)**`,
           `**[1 cbETH = ${rateToString(prices[3])} ETH](<https://www.coinbase.com/cbeth/whitepaper>)**`,
           // 'Warning: these are liquidity-weighted average prices, not best prices. Will switch to best at some point.',
           `_Secondary ([1Inch](<https://app.1inch.io/#/r/${ramanaAddressOneInch}>))_`,
+          //`**[1 RPL = ${rateToString(prices[9])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${RPL.u}>)** (${RPL.p}% ${RPL.d})`,
           `**[1 rETH = ${rateToString(prices[4])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
           `**[1 wstETH = ${rateToString(prices[5])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
           `**[1 swETH = ${rateToString(prices[6])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
