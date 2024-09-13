@@ -46,7 +46,7 @@ if (newMessages.length) {
 const provider = new ethers.JsonRpcProvider(process.env.RPC || 'http://localhost:8545')
 
 const addressRegex = /0x[0-9a-fA-F]{40}/
-const ensRegex = /\S+\.eth/ // overly permissive, but we will also resolve
+const ensRegex = /[\S--`]+\.eth/v // overly permissive, but we will also resolve
 const addresses = []
 for (const {author: {id: user, username: name}, content, id: msg} of messages) {
   const possibleEns = ensRegex.exec(content)?.[0]
