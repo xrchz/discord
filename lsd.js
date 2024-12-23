@@ -59,7 +59,7 @@ async function rateLimit(getCall) {
   return await getCall()
 }
 
-async function secondaryRate(addr) {
+async function oneInchSecondaryRate(addr) {
   const quoteParams = {
     src: addr,
     dst: ethAddress,
@@ -87,6 +87,29 @@ async function secondaryRate(addr) {
   return BigInt(quote.dstAmount)
 }
 
+async function cowSecondaryRate(addr) {
+  const url = `https://api.cow.fi/mainnet/api/v1/token/${addr}/native_price`
+  const options = {hedears: {'Accept': 'application/json'}}
+  const apiCall = () => new Promise((resolve, reject) => {
+    const req = https.get(url, options,
+      (res) => {
+        if (res.statusCode !== 200) {
+          console.log(`$(Date()): Got ${res.statusCode} from CoW: ${res.statusMessage}`)
+          reject(res)
+        }
+        else {
+          res.setEncoding('utf8')
+          let data = ''
+          res.on('data', (chunk) => data += chunk)
+          res.on('end', () => resolve(JSON.parse(data)))
+        }
+      })
+    req.on('error', reject)
+  })
+  const quote = await rateLimit(apiCall)
+  return BigInt(quote.price * 10 ** 18)
+}
+
 const abs = (n) => n < 0n ? -n : n
 
 const percentage = (p, s, addr) => {
@@ -109,6 +132,8 @@ const followupOptions = {
   },
   method: 'PATCH'
 }
+
+const secondaryRate = cowSecondaryRate
 
 app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
   const interaction = req.body;
@@ -138,7 +163,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
         swETHContract.swETHToETHRate(),
         cbETHContract.exchangeRate(),
         secondaryRate(rETHAddress),
-        oneEther, // secondaryRate(xrETHAddress),
+        secondaryRate(xrETHAddress),
         secondaryRate(wstETHAddress),
         secondaryRate(swETHAddress),
         secondaryRate(cbETHAddress),
@@ -160,13 +185,19 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
           `**[1 swETH = ${rateToString(prices[3])} ETH](<https://app.swellnetwork.io>)**`,
           `**[1 cbETH = ${rateToString(prices[4])} ETH](<https://www.coinbase.com/cbeth/whitepaper>)**`,
           // 'Warning: these are liquidity-weighted average prices, not best prices. Will switch to best at some point.',
-          `_Secondary ([1Inch](<https://app.1inch.io/#/r/${ramanaAddressOneInch}>))_`,
+          // `_Secondary ([1Inch](<https://app.1inch.io/#/r/${ramanaAddressOneInch}>))_`,
           //`**[1 RPL = ${rateToString(prices[11])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${RPL.u}>)** (${RPL.p}% ${RPL.d})`,
-          `**[1 rETH = ${rateToString(prices[5])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
-          `**[1 xrETH = ${rateToString(prices[6])} ETH (price unknown)](<https://app.1inch.io/#/1/classic/limit-order/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
-          `**[1 wstETH = ${rateToString(prices[7])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
-          `**[1 swETH = ${rateToString(prices[8])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
-          `**[1 cbETH = ${rateToString(prices[9])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
+          // `**[1 rETH = ${rateToString(prices[5])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
+          // `**[1 xrETH = ${rateToString(prices[6])} ETH (price unknown)](<https://app.1inch.io/#/1/classic/limit-order/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
+          // `**[1 wstETH = ${rateToString(prices[7])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
+          // `**[1 swETH = ${rateToString(prices[8])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
+          // `**[1 cbETH = ${rateToString(prices[9])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
+          `_Secondary (CoW Protocol)_`,
+          `**[1 rETH = ${rateToString(prices[5])} ETH](<https://swap.cow.fi/#/1/swap/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
+          `**[1 xrETH = ${rateToString(prices[6])} ETH](<https://swap.cow.fi/#/1/swap/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
+          `**[1 wstETH = ${rateToString(prices[7])} ETH](<https://swap.cow.fi/#/1/swap/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
+          `**[1 swETH = ${rateToString(prices[8])} ETH](<https://swap.cow.fi/#/1/swap/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
+          `**[1 cbETH = ${rateToString(prices[9])} ETH](<https://swap.cow.fi/#/1/swap/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
           `_[bot](<https://github.com/xrchz/discord>) by ramana.eth (${truncatedAddress})_`,
         ]
         sendFollowup(lines.join('\n'))
