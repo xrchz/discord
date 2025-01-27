@@ -94,7 +94,7 @@ async function cowSecondaryRate(addr) {
     const req = https.get(url, options,
       (res) => {
         if (res.statusCode !== 200) {
-          console.log(`$(Date()): Got ${res.statusCode} from CoW: ${res.statusMessage}`)
+          console.log(`${Date()}: Got ${res.statusCode} from CoW: ${res.statusMessage}`)
           reject(res)
         }
         else {
