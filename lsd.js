@@ -72,7 +72,7 @@ async function oneInchSecondaryRate(addr) {
       (res) => {
         if (res.statusCode !== 200) {
           console.log(`${Date()}: Got ${res.statusCode} from 1inch: ${res.statusMessage}`)
-          reject(res)
+          reject(res.statusMessage)
         }
         else {
           res.setEncoding('utf8')
@@ -94,8 +94,8 @@ async function cowSecondaryRate(addr) {
     const req = https.get(url, options,
       (res) => {
         if (res.statusCode !== 200) {
-          console.log(`${Date()}: Got ${res.statusCode} from CoW: ${res.statusMessage}`)
-          reject(res)
+          console.log(`${Date()}: Got ${res.statusCode} from CoW for ${url}: ${res.statusMessage}`)
+          reject(res.statusMessage)
         }
         else {
           res.setEncoding('utf8')
@@ -135,6 +135,22 @@ const followupOptions = {
 
 const secondaryRate = cowSecondaryRate
 
+const protectPercentage = (rp, rs, addr) => {
+  const r =
+    (rp.status == 'fulfilled' && rs.status == 'fulfilled')
+    ? percentage(rp.value, rs.value, addr)
+    : {d: '?', u: `WETH/${addr}`, p: ''}
+  r.pr =
+    (rp.status == 'fulfilled')
+    ? `${rateToString(rp.value)} ETH`
+    : `error ${rp.reason}`
+  r.sr =
+    (rs.status == 'fulfilled')
+    ? `${rateToString(rs.value)} ETH`
+    : `error ${rs.reason}`
+  return r
+}
+
 app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
   const interaction = req.body;
   const application_id = interaction.application_id
@@ -156,7 +172,7 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
       content: 'Waiting for 1Inch...',
       flags: suppress_embeds<<2 | ephemeral<<6
     })
-    Promise.all(
+    Promise.allSettled(
       [rETHContract.getExchangeRate(),
         xrETHContract.convertToAssets(oneEther),
         wstETHContract.stEthPerToken(),
@@ -167,37 +183,25 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
         secondaryRate(wstETHAddress),
         secondaryRate(swETHAddress),
         secondaryRate(cbETHAddress),
-        //ethers.parseEther('0.69'),
-        //secondaryRate(RPLAddress),
-      ]).then(prices => {
-        const rETH = percentage(prices[0], prices[5], rETHAddress)
-        const xrETH = percentage(prices[1], prices[6], xrETHAddress)
-        const wstETH = percentage(prices[2], prices[7], wstETHAddress)
-        const swETH = percentage(prices[3], prices[8], swETHAddress)
-        const cbETH = percentage(prices[4], prices[9], cbETHAddress)
-        //const RPL = percentage(prices[10], prices[11], RPLAddress)
+      ]).then(results => {
+        const rETH = protectPercentage(results[0], results[5], rETHAddress)
+        const xrETH = protectPercentage(results[1], results[6], xrETHAddress)
+        const wstETH = protectPercentage(results[2], results[7], wstETHAddress)
+        const swETH = protectPercentage(results[3], results[8], swETHAddress)
+        const cbETH = protectPercentage(results[4], results[9], cbETHAddress)
         const lines = [
           '_Primary_',
-          //`**[1 RPL = ${rateToString(prices[10])} ETH](<https://stakingpond.com>)**`,
-          `**[1 rETH = ${rateToString(prices[0])} ETH](<https://stake.rocketpool.net>)**`,
-          `**[1 xrETH = ${rateToString(prices[1])} ETH](<https://app.gravitaprotocol.com/constellation/xreth>)**`,
-          `**[1 wstETH = ${rateToString(prices[2])} ETH](<https://stake.lido.fi/wrap>)**`,
-          `**[1 swETH = ${rateToString(prices[3])} ETH](<https://app.swellnetwork.io>)**`,
-          `**[1 cbETH = ${rateToString(prices[4])} ETH](<https://www.coinbase.com/cbeth/whitepaper>)**`,
-          // 'Warning: these are liquidity-weighted average prices, not best prices. Will switch to best at some point.',
-          // `_Secondary ([1Inch](<https://app.1inch.io/#/r/${ramanaAddressOneInch}>))_`,
-          //`**[1 RPL = ${rateToString(prices[11])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${RPL.u}>)** (${RPL.p}% ${RPL.d})`,
-          // `**[1 rETH = ${rateToString(prices[5])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
-          // `**[1 xrETH = ${rateToString(prices[6])} ETH (price unknown)](<https://app.1inch.io/#/1/classic/limit-order/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
-          // `**[1 wstETH = ${rateToString(prices[7])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
-          // `**[1 swETH = ${rateToString(prices[8])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
-          // `**[1 cbETH = ${rateToString(prices[9])} ETH](<https://app.1inch.io/#/1/classic/limit-order/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
+          `**[1 rETH = ${rETH.pr}](<https://stake.rocketpool.net>)**`,
+          `**[1 xrETH = ${xrETH.pr}](<https://app.gravitaprotocol.com/constellation/xreth>)**`,
+          `**[1 wstETH = ${wstETH.pr}](<https://stake.lido.fi/wrap>)**`,
+          `**[1 swETH = ${swETH.pr}](<https://app.swellnetwork.io>)**`,
+          `**[1 cbETH = ${cbETH.pr}](<https://www.coinbase.com/cbeth/whitepaper>)**`,
           `_Secondary (CoW Protocol)_`,
-          `**[1 rETH = ${rateToString(prices[5])} ETH](<https://swap.cow.fi/#/1/swap/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
-          `**[1 xrETH = ${rateToString(prices[6])} ETH](<https://swap.cow.fi/#/1/swap/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
-          `**[1 wstETH = ${rateToString(prices[7])} ETH](<https://swap.cow.fi/#/1/swap/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
-          `**[1 swETH = ${rateToString(prices[8])} ETH](<https://swap.cow.fi/#/1/swap/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
-          `**[1 cbETH = ${rateToString(prices[9])} ETH](<https://swap.cow.fi/#/1/swap/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
+          `**[1 rETH = ${rETH.sr}](<https://swap.cow.fi/#/1/swap/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
+          `**[1 xrETH = ${xrETH.sr}](<https://swap.cow.fi/#/1/swap/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
+          `**[1 wstETH = ${wstETH.sr}](<https://swap.cow.fi/#/1/swap/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
+          `**[1 swETH = ${swETH.sr}](<https://swap.cow.fi/#/1/swap/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
+          `**[1 cbETH = ${cbETH.sr}](<https://swap.cow.fi/#/1/swap/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
           `_[bot](<https://github.com/xrchz/discord>) by ramana.eth (${truncatedAddress})_`,
         ]
         sendFollowup(lines.join('\n'))
