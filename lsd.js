@@ -18,14 +18,14 @@ const oneEther = ethers.parseEther('1');
 const oneEtherStr = oneEther.toString();
 const ethAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const rETHAddress = '0xae78736Cd615f374D3085123A210448E74Fc6393';
-const xrETHAddress = '0xBB22d59B73D7a6F3A8a83A214BECc67Eb3b511fE';
+const osETHAddress = '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38';
 const wstETHAddress = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const swETHAddress = '0xf951E335afb289353dc249e82926178EaC7DEd78';
 const cbETHAddress = '0xbe9895146f7af43049ca1c1ae358b0541ea49704';
 // const RPLAddress = '0xD33526068D116cE69F19A9ee46F0bd304F21A51f';
 const rETHContract = new ethers.Contract(rETHAddress,
   ['function getExchangeRate() view returns (uint256)'], provider);
-const xrETHContract = new ethers.Contract(xrETHAddress,
+const osETHContract = new ethers.Contract('0x2A261e60FB14586B474C208b1B7AC6D0f5000306',
   ['function convertToAssets(uint256) view returns (uint256)'], provider);
 const wstETHContract = new ethers.Contract(wstETHAddress,
   ['function stEthPerToken() view returns (uint256)'], provider);
@@ -174,31 +174,31 @@ app.post('/', verifyKeyMiddleware(process.env.PUBLIC_KEY), (req, res) => {
     })
     Promise.allSettled(
       [rETHContract.getExchangeRate(),
-        xrETHContract.convertToAssets(oneEther),
+        osETHContract.convertToAssets(oneEther),
         wstETHContract.stEthPerToken(),
         swETHContract.swETHToETHRate(),
         cbETHContract.exchangeRate(),
         secondaryRate(rETHAddress),
-        secondaryRate(xrETHAddress),
+        secondaryRate(osETHAddress),
         secondaryRate(wstETHAddress),
         secondaryRate(swETHAddress),
         secondaryRate(cbETHAddress),
       ]).then(results => {
         const rETH = protectPercentage(results[0], results[5], rETHAddress)
-        const xrETH = protectPercentage(results[1], results[6], xrETHAddress)
+        const osETH = protectPercentage(results[1], results[6], osETHAddress)
         const wstETH = protectPercentage(results[2], results[7], wstETHAddress)
         const swETH = protectPercentage(results[3], results[8], swETHAddress)
         const cbETH = protectPercentage(results[4], results[9], cbETHAddress)
         const lines = [
           '_Primary_',
           `**[1 rETH = ${rETH.pr}](<https://stake.rocketpool.net>)**`,
-          `**[1 xrETH = ${xrETH.pr}](<https://app.gravitaprotocol.com/constellation/xreth>)**`,
+          `**[1 osETH = ${osETH.pr}](<https://app.stakewise.io/>)**`,
           `**[1 wstETH = ${wstETH.pr}](<https://stake.lido.fi/wrap>)**`,
           `**[1 swETH = ${swETH.pr}](<https://app.swellnetwork.io>)**`,
           `**[1 cbETH = ${cbETH.pr}](<https://www.coinbase.com/cbeth/whitepaper>)**`,
           `_Secondary (CoW Protocol)_`,
           `**[1 rETH = ${rETH.sr}](<https://swap.cow.fi/#/1/swap/${rETH.u}>)** (${rETH.p}% ${rETH.d})`,
-          `**[1 xrETH = ${xrETH.sr}](<https://swap.cow.fi/#/1/swap/${xrETH.u}>)** (${xrETH.p}% ${xrETH.d})`,
+          `**[1 osETH = ${osETH.sr}](<https://swap.cow.fi/#/1/swap/${osETH.u}>)** (${osETH.p}% ${osETH.d})`,
           `**[1 wstETH = ${wstETH.sr}](<https://swap.cow.fi/#/1/swap/${wstETH.u}>)** (${wstETH.p}% ${wstETH.d})`,
           `**[1 swETH = ${swETH.sr}](<https://swap.cow.fi/#/1/swap/${swETH.u}>)** (${swETH.p}% ${swETH.d})`,
           `**[1 cbETH = ${cbETH.sr}](<https://swap.cow.fi/#/1/swap/${cbETH.u}>)** (${cbETH.p}% ${cbETH.d})`,
